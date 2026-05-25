@@ -80,7 +80,7 @@
 </div>
 
 <script>
-const API = "http://127.0.0.1:8000/api/records/";
+const API = "https://breathe-esg-tech-intern.onrender.com/api/records/";
 
 function loadData(){
   fetch(API)
@@ -130,7 +130,7 @@ function loadData(){
 }
 
 function updateStatus(id, status){
-  fetch(`http://127.0.0.1:8000/api/records/${id}/status/`, {
+  fetch(`https://breathe-esg-tech-intern.onrender.com/api/records/${id}/status/`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({

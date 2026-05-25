@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Breathe ESG Analyst Dashboard</title>
+  <style>
+    body{
+      margin:0;
+      font-family:Arial, sans-serif;
+      background:#0f172a;
+      color:#e5e7eb;
+    }
+    .container{padding:30px;}
+    h1{color:#22c55e;margin-bottom:5px;}
+    .subtitle{color:#94a3b8;margin-bottom:25px;}
+    .cards{display:flex;gap:15px;margin-bottom:25px;}
+    .card{
+      background:#111827;
+      border:1px solid #1f2937;
+      padding:18px;
+      border-radius:12px;
+      min-width:180px;
+    }
+    .card h3{margin:0;color:#94a3b8;font-size:14px;}
+    .card p{font-size:28px;margin:8px 0 0;font-weight:bold;}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      background:white;
+      color:#111827;
+      border-radius:12px;
+      overflow:hidden;
+    }
+    th,td{padding:14px;border-bottom:1px solid #e5e7eb;text-align:left;}
+    th{background:#22c55e;color:white;}
+    .badge{font-weight:bold;padding:6px 10px;border-radius:20px;font-size:12px;}
+    .PENDING{color:#f59e0b;}
+    .APPROVED{color:#16a34a;}
+    .REJECTED{color:#dc2626;}
+    .SUSPICIOUS{color:#dc2626;}
+    button{
+      border:none;
+      padding:8px 12px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:bold;
+      margin-right:6px;
+    }
+    .approve{background:#22c55e;color:white;}
+    .reject{background:#ef4444;color:white;}
+    .lock{color:#64748b;font-size:13px;}
+  </style>
+</head>
+
+<body>
+<div class="container">
+  <h1>Breathe ESG Analyst Dashboard</h1>
+  <div class="subtitle">Review normalized emissions data before audit sign-off</div>
+
+  <div class="cards">
+    <div class="card"><h3>Total Records</h3><p id="total">0</p></div>
+    <div class="card"><h3>Approved</h3><p id="approved">0</p></div>
+    <div class="card"><h3>Suspicious</h3><p id="suspicious">0</p></div>
+    <div class="card"><h3>Total Emissions</h3><p id="emissions">0</p></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Scope</th>
+        <th>Quantity</th>
+        <th>Unit</th>
+        <th>Status</th>
+        <th>Emission kgCO2e</th>
+        <th>Review Action</th>
+      </tr>
+    </thead>
+    <tbody id="data-body"></tbody>
+  </table>
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000/api/records/";
+
+function loadData(){
+  fetch(API)
+    .then(res => res.json())
+    .then(data => {
+      const table = document.getElementById("data-body");
+      table.innerHTML = "";
+
+      let approved = 0;
+      let suspicious = 0;
+      let totalEmission = 0;
+
+      data.forEach(record => {
+        if(record.status === "APPROVED") approved++;
+        if(record.status === "SUSPICIOUS") suspicious++;
+        totalEmission += Number(record.estimated_emission_kgco2e);
+
+        let actions = "";
+
+        if(record.is_locked){
+          actions = `<span class="lock">Locked for audit</span>`;
+        } else {
+          actions = `
+            <button class="approve" onclick="updateStatus(${record.id}, 'APPROVED')">Approve</button>
+            <button class="reject" onclick="updateStatus(${record.id}, 'REJECTED')">Reject</button>
+          `;
+        }
+
+        table.innerHTML += `
+          <tr>
+            <td>${record.category}</td>
+            <td>${record.scope}</td>
+            <td>${record.raw_quantity}</td>
+            <td>${record.raw_unit}</td>
+            <td class="${record.status}">${record.status}</td>
+            <td>${record.estimated_emission_kgco2e}</td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("total").innerText = data.length;
+      document.getElementById("approved").innerText = approved;
+      document.getElementById("suspicious").innerText = suspicious;
+      document.getElementById("emissions").innerText = totalEmission.toFixed(2);
+    });
+}
+
+function updateStatus(id, status){
+  fetch(`http://127.0.0.1:8000/api/records/${id}/status/`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      status: status,
+      comment: `Analyst marked this record as ${status}`
+    })
+  })
+  .then(res => res.json())
+  .then(() => loadData());
+}
+
+loadData();
+</script>
+</body>
+</html>
